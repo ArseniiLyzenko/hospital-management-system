@@ -1,29 +1,31 @@
-import React, {useCallback, useRef, useState} from 'react';
+import React, {useRef, useState} from 'react';
 
-import AccordionSummary from "@mui/material/AccordionSummary";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import Typography from "@mui/material/Typography";
-import AccordionDetails from "@mui/material/AccordionDetails";
-import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import Button from "@mui/material/Button";
-import Accordion from "@mui/material/Accordion";
 import {
-  Dialog, DialogTitle, DialogActions
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Typography,
+  TextField,
+  Button,
+  Stack,
 } from "@mui/material";
 
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import SaveIcon from '@mui/icons-material/Save';
-import DoDisturbIcon from '@mui/icons-material/DoDisturb';
+import {
+  Save,
+  Edit,
+  Delete,
+  DoDisturb,
+  ExpandMore,
+} from "@mui/icons-material";
 
-import {SetHospitalById} from "../types";
-import {IHospital} from "../features/hospitalsList/hospitalsSlice";
+import DeleteConfirmationDialog from "../../components/DeleteConfirmationDialog";
+
+import {IHospital, TDeleteHospitalById, TSetHospitalById} from "../../types";
 
 interface Props {
   hospitalData: IHospital;
-  onSave: SetHospitalById;
-  onDelete: () => void;
+  onSave: TSetHospitalById;
+  onDelete: TDeleteHospitalById;
 }
 
 const Hospital = ({hospitalData, onSave, onDelete}: Props) => {
@@ -31,59 +33,54 @@ const Hospital = ({hospitalData, onSave, onDelete}: Props) => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(hospitalData.hospitalName === "");
-
-  const [data, setData] = useState(hospitalData);
-  // const [city, setCity] = useState(hospitalData.city);
-
-  // const handleHospitalPropertyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   setData({
-  //       ...data,
-  //       [e.target.name]: e.target.value,
-  //     });
-  //     console.log("CALLBACK");
-  // };
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const [isHospitalNameError, setIsHospitalNameError] = useState(false);
   const hospitalNameInputRef = useRef<HTMLInputElement>();
 
-  const [isExpanded, setIsExpanded] = useState(data.hospitalName === "");
-
-  const handleHospitalPropertyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setData({
-      ...data,
-      [e.target.name]: e.target.value,
-    });
-    console.log("CALLBACK");
-  }, [data]);
-
-  const handleSave = () => {
+  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (isHospitalNameError) {
       hospitalNameInputRef.current?.focus();
       return;
     }
     if (isEditing) setIsEditing(false);
     if (isCreating) setIsCreating(false);
-    onSave(data);
+    const formData = new FormData(e.currentTarget);
+    console.log(formData.entries())
+    const fieldsValues = Object.fromEntries(formData.entries());
+    //TODO: fix typescript
+    //@ts-ignore
+    onSave({
+      ...fieldsValues,
+      id: hospitalData.id
+    });
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setData(hospitalData);
   };
 
-  //TODO: ADD REQUIRED
+  const handleDelete = () => {
+    setIsDeleteDialogOpen(false);
+    onDelete(hospitalData.id);
+  };
+
   return (
-    <Accordion expanded={isExpanded || isCreating || isEditing}>
-      <AccordionSummary expandIcon={<ExpandMoreIcon/>} onClick={() => setIsExpanded(prevState => !prevState)}>
-        {!isEditing && !isCreating
-          ? <Typography variant="h6">
-              {data.hospitalName}
+    <form onSubmit={handleSave} onReset={handleCancel}>
+      <Accordion expanded={isExpanded || isCreating || isEditing}>
+        <AccordionSummary expandIcon={<ExpandMore/>} onClick={() => setIsExpanded(prevState => !prevState)}>
+          {!isEditing && !isCreating
+            ?
+            <Typography variant="h6">
+              {hospitalData.hospitalName}
             </Typography>
-          : <TextField
-              value={data.hospitalName}
+            :
+            <TextField
               name="hospitalName"
+              defaultValue={hospitalData.hospitalName}
               label="Hospital Name"
               variant="outlined"
               autoComplete="off"
@@ -94,181 +91,139 @@ const Hospital = ({hospitalData, onSave, onDelete}: Props) => {
               error={isHospitalNameError}
               helperText={isHospitalNameError ? "Hospital name is required" : ""}
               inputRef={hospitalNameInputRef}
-              onChange={handleHospitalPropertyChange}
               onClick={e => e.stopPropagation()} // prevents closing of accordion on editing
-              onBlur={(e) => setIsHospitalNameError(e.target.value === "")}
+              onBlur={e => setIsHospitalNameError(e.target.value === "")}
               onFocus={() => setIsHospitalNameError(false)}
             />
-      }
-      </AccordionSummary>
-      <AccordionDetails>
-        <Stack spacing={2}>
-          <Typography variant={"overline"} textAlign={"center"}>
-            Contacts
-          </Typography>
+          }
+        </AccordionSummary>
+        <AccordionDetails>
+          <Stack spacing={2}>
+            <Typography variant="overline" textAlign="center">
+              Contacts
+            </Typography>
 
-          <TextField
-            label="Contact Person"
-            name="contactPerson"
-            variant="outlined"
-            // defaultValue={data.contactPerson}
-            value={data.contactPerson}
-            onChange={handleHospitalPropertyChange}
-            size="small"
-            InputProps={{
-              readOnly: !isEditing && !isCreating,
-            }}
-          />
-          {/*TODO: mask for phone*/}
-          <TextField
-            label="Cellphone"
-            name="contactCellphone"
-            variant="outlined"
-            type="tel"
-            // defaultValue={data.contactCellphone}
-            value={data.contactCellphone}
-            onChange={handleHospitalPropertyChange}
-            size={"small"}
-            InputProps={{
-              readOnly: !isEditing && !isCreating,
-            }}
-          />
+            <TextField
+              name="contactPerson"
+              defaultValue={hospitalData.contactPerson}
+              label="Contact Person"
+              variant="outlined"
+              size="small"
+              InputProps={{ readOnly: !isEditing && !isCreating }}
+            />
+            {/*TODO: phone number mask*/}
+            <TextField
+              name="contactCellphone"
+              defaultValue={hospitalData.contactCellphone}
+              label="Cellphone"
+              variant="outlined"
+              size="small"
+              type="tel"
+              InputProps={{ readOnly: !isEditing && !isCreating }}
+            />
 
-          <Typography variant={"overline"} textAlign={"center"}>Address</Typography>
+            <Typography variant="overline" textAlign="center">Address</Typography>
 
-          <TextField
-            label="Street Line 1"
-            name="streetLine1"
-            variant="outlined"
-            // defaultValue={data.streetLine1}
-            value={data.streetLine1}
-            onChange={handleHospitalPropertyChange}
-            size={"small"}
-            InputProps={{
-              readOnly: !isEditing && !isCreating,
-            }}
-          />
+            <TextField
+              name="streetLine1"
+              defaultValue={hospitalData.streetLine1}
+              label="Street Line 1"
+              variant="outlined"
+              size="small"
+              InputProps={{ readOnly: !isEditing && !isCreating }}
+            />
 
-          <TextField
-            label="Street Line 2"
-            name="streetLine2"
-            variant="outlined"
-            // defaultValue={data.streetLine2}
-            value={data.streetLine2}
-            onChange={handleHospitalPropertyChange}
-            size={"small"}
-            InputProps={{
-              readOnly: !isEditing && !isCreating,
-            }}
-          />
+            <TextField
+              name="streetLine2"
+              defaultValue={hospitalData.streetLine2}
+              label="Street Line 2"
+              variant="outlined"
+              size="small"
+              InputProps={{ readOnly: !isEditing && !isCreating }}
+            />
 
-          <TextField
-            label="City"
-            name="city"
-            variant="outlined"
-            value={data.city}
-            onChange={handleHospitalPropertyChange}
-            size="small"
-            InputProps={{
-              readOnly: !isEditing && !isCreating,
-            }}
-          />
+            <TextField
+              name="city"
+              defaultValue={hospitalData.city}
+              label="City"
+              variant="outlined"
+              size="small"
+              InputProps={{ readOnly: !isEditing && !isCreating }}
+            />
 
-          <TextField
-            label="State/Province/Region"
-            name="state"
-            variant="outlined"
-            // defaultValue={data.state}
-            value={data.state}
-            onChange={handleHospitalPropertyChange}
-            size={"small"}
-            InputProps={{
-              readOnly: !isEditing && !isCreating,
-            }}
-          />
+            <TextField
+              name="state"
+              defaultValue={hospitalData.state}
+              label="State/Province/Region"
+              variant="outlined"
+              size="small"
+              InputProps={{ readOnly: !isEditing && !isCreating }}
+            />
 
-          <TextField
-            label="ZIP/Postal Code"
-            name="zip"
-            variant="outlined"
-            // defaultValue={data.zip}
-            value={data.zip}
-            onChange={handleHospitalPropertyChange}
-            size={"small"}
-            InputProps={{
-              readOnly: !isEditing && !isCreating,
-            }}
-          />
+            <TextField
+              name="zip"
+              defaultValue={hospitalData.zip}
+              label="ZIP/Postal Code"
+              variant="outlined"
+              size="small"
+              InputProps={{ readOnly: !isEditing && !isCreating }}
+            />
 
-          <Stack direction={"row"} spacing={2}>
-            {(isCreating || !isEditing) &&
-              <Button
-                variant={"outlined"}
-                color={"error"}
-                startIcon={<DeleteIcon/>}
-                onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                Delete
-              </Button>
-            }
+            <Stack direction="row" spacing={2}>
+              {(isCreating || !isEditing) &&
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<Delete/>}
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  Delete
+                </Button>
+              }
 
-            {isEditing &&
-              <Button
-                variant={"outlined"}
-                color={"warning"}
-                startIcon={<DoDisturbIcon/>}
-                onClick={handleCancel}
-              >
-                Cancel
-              </Button>
-            }
+              {isEditing &&
+                <Button
+                  type="reset"
+                  variant="outlined"
+                  color="warning"
+                  startIcon={<DoDisturb/>}
+                >
+                  Cancel
+                </Button>
+              }
 
-            {(isEditing || isCreating) &&
-              <Button
-                variant={"outlined"}
-                startIcon={<SaveIcon/>}
-                onClick={handleSave}
-              >
-                Save
-              </Button>
-            }
+              {(isEditing || isCreating) &&
+                <Button
+                  type="submit"
+                  variant="outlined"
+                  startIcon={<Save/>}
+                >
+                  Save
+                </Button>
+              }
 
-            {(!isEditing && !isCreating) &&
-              <Button
-                variant={"outlined"}
-                startIcon={<EditIcon/>}
-                onClick={() => setIsEditing(true)}
-              >
-                Edit
-              </Button>
-            }
+              {(!isEditing && !isCreating) &&
+                <Button
+                  variant="outlined"
+                  startIcon={<Edit/>}
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit
+                </Button>
+              }
+            </Stack>
           </Stack>
-        </Stack>
 
-        {/*TODO: move Dialog to new file?*/}
-        <Dialog open={isDeleteDialogOpen}>
-          <DialogTitle id="alert-dialog-title">
-            {"Permanently delete item?"}
-          </DialogTitle>
-          <DialogActions>
-            <Button
-              color="error"
-              onClick={() => {
-                onDelete();
-                setIsDeleteDialogOpen(false);
-              }}
-            >
-              Delete
-            </Button>
-            <Button onClick={() => setIsDeleteDialogOpen(false)} autoFocus>
-              Cancel
-            </Button>
-          </DialogActions>
-        </Dialog>
+          <DeleteConfirmationDialog
+            isOpen={isDeleteDialogOpen}
+            onDelete={handleDelete}
+            onCancel={() => setIsDeleteDialogOpen(false)}
+          />
 
-      </AccordionDetails>
-    </Accordion>
+        </AccordionDetails>
+      </Accordion>
+    </form>
   );
 };
 
-export default Hospital;
+export default React.memo(Hospital);
