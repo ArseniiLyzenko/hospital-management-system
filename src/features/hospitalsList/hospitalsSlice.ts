@@ -1,56 +1,44 @@
-import {createSlice, PayloadAction} from "@reduxjs/toolkit";
+import {createAsyncThunk, createSlice, PayloadAction} from "@reduxjs/toolkit";
 import type {RootState} from "../../app/store";
 import {IHospital, THospitalId} from "../../types";
+import {HARDCODED_HOSPITALS} from "../../constants";
 
-export const initialState: IHospital[] = [
-  {
-    id: 111,
-    hospitalName: "Allegheny General Hospital",
-    streetLine1: "320 East North Avenue",
-    streetLine2: "",
-    city: "Pittsburgh",
-    state: "PA",
-    zip: "15212",
-    contactPerson: "John Doe",
-    contactCellphone: "+1 (234) 567-89-00",
-  },
-  {
-    id: 222,
-    hospitalName: "Butler Memorial Hospital",
-    streetLine1: "One Hospital Way",
-    streetLine2: "",
-    city: "Butler",
-    state: "PA",
-    zip: "16001-4697",
-    contactPerson: "Another John",
-    contactCellphone: "+1 (987) 654-32-10",
-  },
-  {
-    id: 333,
-    hospitalName: "Chester County Hospital",
-    streetLine1: "701 East Marshall Street",
-    streetLine2: "",
-    city: "West Chester",
-    state: "PA",
-    zip: "19380-4412",
-    contactPerson: "Another John",
-    contactCellphone: "+1 (987) 654-32-10",
-  },
-];
+const initialState: {
+  isLoading: boolean;
+  error: string | undefined;
+  data: IHospital[];
+} = {
+  isLoading: false,
+  error: "",
+  data: [],
+};
+
+export const fetchHospitals = createAsyncThunk(
+  "hospitals/fetchHospitals",
+  async () => {
+    return await mockHospitalsFetch();
+  }
+);
+
+const mockHospitalsFetch = (): Promise<IHospital[]> => {
+  return new Promise((resolve) =>
+    setTimeout(() =>
+      resolve(HARDCODED_HOSPITALS), 3000));
+};
 
 export const hospitalsSlice = createSlice({
   name: 'hospitals',
   initialState,
   reducers: {
     updateHospital: (state, action: PayloadAction<IHospital>) => {
-      const index = state.findIndex((hospital) => hospital.id === action.payload.id);
-      state[index] = action.payload;
+      const index = state.data.findIndex((hospital) => hospital.id === action.payload.id);
+      state.data[index] = action.payload;
     },
     deleteHospitalById: (state, action: PayloadAction<THospitalId>) => {
-      return state.filter((hospital) => hospital.id !== action.payload);
+      state.data = state.data.filter((hospital) => hospital.id !== action.payload);
     },
     addHospital: (state) => {
-      state.push({
+      state.data.push({
         id: Date.now(),
         hospitalName: "",
         streetLine1: "",
@@ -63,10 +51,28 @@ export const hospitalsSlice = createSlice({
       });
     },
   },
+  extraReducers: (builder) => {
+    builder.addCase(fetchHospitals.pending, (state) => {
+      state.error = "";
+      state.isLoading = true;
+    });
+    builder.addCase(fetchHospitals.fulfilled, (state, action) => {
+      state.isLoading = false;
+      state.data = action.payload;
+      state.error = "";
+    });
+    builder.addCase(fetchHospitals.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.error.message;
+    });
+  }
 })
 
 export const { updateHospital, deleteHospitalById, addHospital } = hospitalsSlice.actions;
 
-export const selectHospitals = (state: RootState) => state.hospitals;
+export const selectHospitals = (state: RootState) => state.hospitals.data;
+export const selectIsLoading = (state: RootState) => state.hospitals.isLoading;
+export const selectError = (state: RootState) => state.hospitals.error;
 
 export default hospitalsSlice.reducer;
+

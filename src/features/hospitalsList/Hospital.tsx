@@ -8,6 +8,7 @@ import {
   TextField,
   Button,
   Stack,
+  Divider
 } from "@mui/material";
 
 import {
@@ -29,8 +30,6 @@ interface Props {
 }
 
 const Hospital = ({hospitalData, onSave, onDelete}: Props) => {
-  console.log("RENDER HOSPITAL")
-
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(hospitalData.hospitalName === "");
   const [isExpanded, setIsExpanded] = useState(false);
@@ -42,21 +41,29 @@ const Hospital = ({hospitalData, onSave, onDelete}: Props) => {
 
   const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const formData = new FormData(e.currentTarget);
+    const fieldsValues = Object.fromEntries(formData.entries());
+
+    validate(fieldsValues);
+
     if (isHospitalNameError) {
       hospitalNameInputRef.current?.focus();
       return;
     }
+
     if (isEditing) setIsEditing(false);
     if (isCreating) setIsCreating(false);
-    const formData = new FormData(e.currentTarget);
-    console.log(formData.entries())
-    const fieldsValues = Object.fromEntries(formData.entries());
-    //TODO: fix typescript
-    //@ts-ignore
+
     onSave({
       ...fieldsValues,
       id: hospitalData.id
-    });
+    } as IHospital);
+  };
+
+  const validate = (inputs: {[p: string]: FormDataEntryValue}) => {
+    setIsHospitalNameError(inputs.hospitalName === "");
+    // TODO: validate the rest of the fields.
   };
 
   const handleCancel = () => {
@@ -69,7 +76,7 @@ const Hospital = ({hospitalData, onSave, onDelete}: Props) => {
   };
 
   return (
-    <form onSubmit={handleSave} onReset={handleCancel}>
+    <form onSubmit={handleSave} onReset={handleCancel} noValidate>
       <Accordion expanded={isExpanded || isCreating || isEditing}>
         <AccordionSummary expandIcon={<ExpandMore/>} onClick={() => setIsExpanded(prevState => !prevState)}>
           {!isEditing && !isCreating
@@ -99,28 +106,34 @@ const Hospital = ({hospitalData, onSave, onDelete}: Props) => {
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={2}>
+            <Divider/>
             <Typography variant="overline" textAlign="center">
               Contacts
             </Typography>
 
-            <TextField
-              name="contactPerson"
-              defaultValue={hospitalData.contactPerson}
-              label="Contact Person"
-              variant="outlined"
-              size="small"
-              InputProps={{ readOnly: !isEditing && !isCreating }}
-            />
-            {/*TODO: phone number mask*/}
-            <TextField
-              name="contactCellphone"
-              defaultValue={hospitalData.contactCellphone}
-              label="Cellphone"
-              variant="outlined"
-              size="small"
-              type="tel"
-              InputProps={{ readOnly: !isEditing && !isCreating }}
-            />
+            <Stack spacing={2} direction={{xs: "column", sm: "row"}}>
+              <TextField
+                name="contactPerson"
+                defaultValue={hospitalData.contactPerson}
+                label="Contact Person"
+                variant="outlined"
+                size="small"
+                fullWidth
+                InputProps={{ readOnly: !isEditing && !isCreating }}
+              />
+
+              {/*TODO: add phone number mask*/}
+              <TextField
+                name="contactCellphone"
+                defaultValue={hospitalData.contactCellphone}
+                label="Cellphone"
+                variant="outlined"
+                size="small"
+                type="tel"
+                fullWidth
+                InputProps={{ readOnly: !isEditing && !isCreating }}
+              />
+            </Stack>
 
             <Typography variant="overline" textAlign="center">Address</Typography>
 
@@ -151,25 +164,29 @@ const Hospital = ({hospitalData, onSave, onDelete}: Props) => {
               InputProps={{ readOnly: !isEditing && !isCreating }}
             />
 
-            <TextField
-              name="state"
-              defaultValue={hospitalData.state}
-              label="State/Province/Region"
-              variant="outlined"
-              size="small"
-              InputProps={{ readOnly: !isEditing && !isCreating }}
-            />
+            <Stack spacing={2} direction={{xs: "column", sm: "row"}}>
+              <TextField
+                name="state"
+                defaultValue={hospitalData.state}
+                label="State/Province/Region"
+                variant="outlined"
+                size="small"
+                fullWidth
+                InputProps={{ readOnly: !isEditing && !isCreating }}
+              />
 
-            <TextField
-              name="zip"
-              defaultValue={hospitalData.zip}
-              label="ZIP/Postal Code"
-              variant="outlined"
-              size="small"
-              InputProps={{ readOnly: !isEditing && !isCreating }}
-            />
+              <TextField
+                name="zip"
+                defaultValue={hospitalData.zip}
+                label="ZIP/Postal Code"
+                variant="outlined"
+                size="small"
+                fullWidth
+                InputProps={{ readOnly: !isEditing && !isCreating }}
+              />
+            </Stack>
 
-            <Stack direction="row" spacing={2}>
+            <Stack direction="row" justifyContent="center" spacing={2}>
               {(isCreating || !isEditing) &&
                 <Button
                   variant="outlined"

@@ -1,15 +1,21 @@
 import hospitalsReducer, {
   deleteHospitalById,
   updateHospital,
-  addHospital,
-  initialState
+  addHospital
 } from "./hospitalsSlice";
+import {HARDCODED_HOSPITALS} from "../../constants";
 
 describe("hospitals reducer", () => {
 
+  const initialState = {
+    isLoading: false,
+    error: "",
+    data: HARDCODED_HOSPITALS,
+  }
+
   it('should delete hospital by id', function () {
     const actual = hospitalsReducer(initialState, deleteHospitalById(222))
-    expect(actual).toEqual([
+    expect(actual.data).toEqual([
       {
         id: 111,
         hospitalName: "Allegheny General Hospital",
@@ -47,7 +53,7 @@ describe("hospitals reducer", () => {
       contactPerson: "Updated John",
       contactCellphone: "+1 (Updated) 654-32-10",
     }));
-    expect(actual).toEqual([
+    expect(actual.data).toEqual([
       {
         id: 111,
         hospitalName: "Allegheny General Hospital",
@@ -86,10 +92,10 @@ describe("hospitals reducer", () => {
 
   it('should add new hospital', function () {
     const actual = hospitalsReducer(initialState, addHospital());
-    expect(actual).toEqual([
-      ...initialState,
+    expect(actual.data).toEqual([
+      ...HARDCODED_HOSPITALS,
       expect.objectContaining({
-        // id: Date.now(), partial matching, property "id" is optional
+        // id: Date.now(), partial matching, property "id" is optional for test
         hospitalName: "",
         streetLine1: "",
         streetLine2: "",
@@ -106,6 +112,6 @@ describe("hospitals reducer", () => {
     let actual = hospitalsReducer(initialState, deleteHospitalById(111));
     actual = hospitalsReducer(actual, deleteHospitalById(222));
     actual = hospitalsReducer(actual, deleteHospitalById(333));
-    expect(actual).toEqual([]);
+    expect(actual.data).toEqual([]);
   });
 });
